@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: gwresponse
+Version: 0.1.0
+Summary: LISA waveform and response modeling toolkit
+Author: Mireia Egido
+Requires-Python: >=3.11
+Requires-Dist: jax>=0.8.2
+Requires-Dist: jaxlib>=0.8.2
+Requires-Dist: ripplegw
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: ipykernel
+Dynamic: author
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
