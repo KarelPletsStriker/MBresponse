@@ -1,6 +1,0 @@
-jax>=0.8.2
-jaxlib>=0.8.2
-ripplegw
-numpy
-matplotlib
-ipykernel

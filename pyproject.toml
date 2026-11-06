@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gwresponse"
+version = "0.2.0"
+description = "LISA TDI response as a Jim detector, for joint space- and ground-based parameter estimation"
+readme = "README.md"
+authors = [{ name = "Mireia Egido" }, { name = "Karel Plets" }]
+requires-python = ">=3.11"
+dependencies = [
+    "jimgw>=0.6.1",
+    "ripplegw>=0.5.0",
+    "jax>=0.8.2",
+    "numpy",
+    "astropy",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+examples = ["corner", "matplotlib"]
+
+[tool.setuptools.packages.find]
+include = ["gwresponse*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
