@@ -123,12 +123,12 @@ likelihood = HeterodynedTransientLikelihoodFD(
 if args.quick:
     sampler_config = FlowMCConfig(
         n_chains=50, n_local_steps=10, n_global_steps=10, n_training_loops=2,
-        n_production_loops=2, n_epochs=2, global_thinning=1, n_NFproposal_batch_size=100,
+        n_production_loops=2, n_epochs=2, global_thinning=1, n_NFproposal_batch_size=20, chain_batch_size=50,
     )
 else:
     sampler_config = FlowMCConfig(
         n_chains=1000, n_local_steps=100, n_global_steps=1000, n_training_loops=50,
-        n_production_loops=10, global_thinning=100, n_NFproposal_batch_size=100,
+        n_production_loops=10, global_thinning=100, n_NFproposal_batch_size=20, chain_batch_size=50,
     )
 
 jim = Jim(
