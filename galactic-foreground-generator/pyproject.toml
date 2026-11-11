@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "galactic-foreground-generator"
+version = "0.1.0"
+description = "Python port of Lucy McNeill's Mathematica notebook on double white dwarf merger rates and the Galactic DWD population"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy", "scipy", "pandas", "matplotlib"]
+
+[project.optional-dependencies]
+notebook = ["jupyter"]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
