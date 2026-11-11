@@ -16,9 +16,11 @@ def test_time_to_merger_is_the_stationary_phase_time_of_ripple():
     f = jnp.linspace(1e-4, 0.03, 20001)
     _, dphase = jax.jvp(lambda x: wf.phase(x, LISA_PARAMS), (f,), (jnp.ones_like(f),))
     np.testing.assert_allclose(time_to_merger(f, LISA_PARAMS), -dphase / (2 * jnp.pi), rtol=1e-9, atol=1e-6)
-    # Monotonic before the cut, and the same on a non-uniform grid
+    # Monotonic through inspiral and merger (up to 2 f_RD = 8.5 mHz for these parameters;
+    # IMRPhenomD's ringdown phase makes t(f) turn over again near 20 mHz, where the
+    # amplitude is exponentially small), and the same on a non-uniform grid
     t = time_to_merger(f, LISA_PARAMS)
-    assert bool(jnp.all(jnp.diff(t) >= 0))
+    assert bool(jnp.all(jnp.diff(t)[f[1:] < 8.5e-3] > 0))
     g = jnp.geomspace(1e-4, 0.03, 300)
     np.testing.assert_allclose(time_to_merger(g, LISA_PARAMS), jnp.interp(g, f, t), rtol=1e-6)
 
