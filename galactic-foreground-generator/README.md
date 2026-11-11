@@ -18,6 +18,7 @@ A Python and Jupyter port of **Lucy McNeill's** Mathematica notebook `paper-calc
 | `src/galactic_foreground/population.py` | Pair sampling, He/CO composition, mass-sum fractions, KDE contours, Nelemans+2001 boundary |
 | `src/galactic_foreground/stability.py` | Boundary between stable and unstable mass transfer (Eggleton mass–radius, Roche lobe, GW losses) |
 | `src/galactic_foreground/gw.py` | Chirp mass, df/dt, residence times, N(>f) for the Milky Way and the 100 pc sample |
+| `src/galactic_foreground/generator.py` | **Extension:** draws a synthetic catalogue of Galactic DWDs (m1, m2, f_GW, f_orb, position, distance) from the same model |
 | `tests/` | Checks against every analytic number printed in the original notebook |
 | `scripts/build_notebook.py` | Regenerates the notebook from source |
 
