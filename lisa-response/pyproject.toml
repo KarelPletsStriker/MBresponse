@@ -20,8 +20,10 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest"]
 examples = ["corner", "matplotlib"]
+reference = ["lisaanalysistools", "bbhx", "lisaorbits", "lisagwresponse", "pytdi"]
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["gwresponse*"]
 
 [tool.pytest.ini_options]

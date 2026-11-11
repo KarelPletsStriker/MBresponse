@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the original analysis by Lucy McNeill."
+title: "galactic-foreground-generator: Python port of 'paper-calculations.nb' (white dwarf merger rates)"
+authors:
+  - family-names: McNeill
+    given-names: Lucy
+references:
+  - type: article
+    title: "Close double white dwarf binaries catalogue (DBL survey I)"
+    authors:
+      - family-names: Munday
+        given-names: James
+    journal: "MNRAS"
+    volume: 532
+    start: 2534
+    year: 2024
