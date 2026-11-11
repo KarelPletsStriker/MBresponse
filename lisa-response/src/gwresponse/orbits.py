@@ -73,14 +73,21 @@ def _earth_state(gps_time: float) -> tuple[tuple[float, ...], tuple[float, ...]]
     return tuple(position.tolist()), tuple(velocity.tolist())
 
 
-def earth_position_velocity(gps_time: float) -> tuple[np.ndarray, np.ndarray]:
+def earth_position_velocity(gps_time: float, acceleration: bool = False) -> tuple[np.ndarray, ...]:
     """Barycentric position (m) and velocity (m/s) of the geocentre, in the ecliptic frame.
 
     Args:
         gps_time: GPS time, in s.
+        acceleration: Also return the acceleration (m/s^2), from a central
+            difference of the ephemeris velocity over +-1 hour.
     """
     position, velocity = _earth_state(float(gps_time))
-    return np.array(position), np.array(velocity)
+    if not acceleration:
+        return np.array(position), np.array(velocity)
+    dt = 3600.0
+    _, v_plus = _earth_state(float(gps_time) + dt)
+    _, v_minus = _earth_state(float(gps_time) - dt)
+    return np.array(position), np.array(velocity), (np.array(v_plus) - np.array(v_minus)) / (2 * dt)
 
 
 def lisa_orbit_trailing_earth(

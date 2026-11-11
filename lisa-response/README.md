@@ -70,7 +70,7 @@ These conventions are what make LISA and ground-based detectors consistent in on
 
 | Quantity | Convention |
 |---|---|
-| Sky position | Jim's equatorial `ra`, `dec`. Converted internally to the ecliptic frame (J2000 obliquity). `ecliptic_to_equatorial` / `equatorial_to_ecliptic` are provided. |
+| Sky position | Jim's equatorial `ra`, `dec`. Jim's ground-based detectors use Greenwich *mean* sidereal time, so their `ra`, `dec` are referred to the mean equator and equinox at the trigger time, not J2000 (0.34° apart in 2024). `SpaceBased` uses the same convention: it undoes the IAU 2006 precession at the trigger time, then rotates to the J2000 ecliptic. `ecliptic_to_equatorial` / `equatorial_to_ecliptic` convert J2000 coordinates. |
 | Polarization `psi` | Jim's own `Polarization` tensors, rotated to the ecliptic frame, so `psi` means the same as for H1/L1/V1. |
 | Time `t_c` | Default `time_reference="geocenter"`: arrival time of the peak **at the geocentre** relative to the data's trigger time, exactly as in Jim. The Roemer delay to the barycentre uses astropy's built-in Earth ephemeris. `time_reference="ssb"` references `t_c` to the barycentre instead. |
 | Fourier convention | Jim's, `exp(-2iπft)`. |
@@ -94,7 +94,8 @@ These conventions are what make LISA and ground-based detectors consistent in on
 
 - `time_to_merger` equals −(1/2π) dφ/df of ripple's IMRPhenomD phase to machine precision, on uniform and non-uniform grids.
 - The A/E/T noise PSDs equal the combinations of the Michelson auto- and cross-spectra.
-- The sky- and polarization-averaged sensitivity of the response plus noise reproduces Robson et al. (2019) eq. 13 (a factor of 2 for one channel against their two-channel curve) to within 4% for 0.1–10 mHz.
+- The sky- and polarization-averaged sensitivity of the response plus noise reproduces Robson et al. (2019) eq. 13 (a factor of 2 for one channel against their two-channel curve) to within 1% for 0.1–5 mHz. Above that, Robson's fit of the averaged response is itself approximate (7% off at 10 mHz).
+- The Roemer delay matches astropy's barycentric light travel time (< 0.1 ms for |t_c| ≤ 1 day), and the sky frame matches astropy's mean-equinox-of-date to J2000 ecliptic transformation.
 - In the long-wavelength limit, the X channel equals Jim's ground-based antenna-pattern formula for an interferometer with LISA's arms. This ties the LISA response and Jim's detectors to one polarization and sign convention.
 - Geocentric and barycentric time references give identical responses after the Roemer delay.
 - A zero-noise injection gives log L = SNR²/2 with zero gradient at the truth. The heterodyned likelihood matches the full one. `MultibandLikelihood` adds its bands and rejects invalid set-ups.
@@ -105,7 +106,9 @@ These conventions are what make LISA and ground-based detectors consistent in on
 
 ## Approximations and limitations
 
-- IMRPhenomD (2,2) only. Other models need their own time–frequency map in `gwresponse.waveform`.
+- IMRPhenomD (2,2) only. Other models need their own time–frequency map in `gwresponse.waveform`. `inject_signal` and `MultibandLikelihood` reject other waveforms. A bare Jim `TransientLikelihoodFD` cannot: the detector never sees the waveform, so wrap a LISA-only likelihood in `MultibandLikelihood([...])` to get the check.
+- The geocentre-to-barycentre delay is expanded to second order in `t_c` about the trigger time: 0.02 ms error at |t_c| = 1 day, 10 ms at 1 week. Keep the trigger time within a day of the merger.
+- `get_LISA()` without `trigger_time` places LISA at an arbitrary orbital phase and warns.
 - First-generation TDI, equal and constant arms, no light-travel time along the orbit within a link, no galactic confusion noise. Keep `f_max` below c/(2L) ≈ 0.06 Hz, the first zero of the TDI response and noise.
 - Jim's time marginalization treats `t_c` as a pure phase shift. For LISA this neglects the change in orbital position over the `t_c` range, so prefer sampling `t_c`.
 - Not a substitute for a full LISA data model (unequal arms, second-generation TDI, realistic orbits).

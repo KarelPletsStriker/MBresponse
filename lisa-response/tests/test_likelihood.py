@@ -68,6 +68,11 @@ def test_multiband_likelihood_validation(waveform):
             TransientLikelihoodFD(lisa_ifos, waveform),
             TransientLikelihoodFD(make_ground(waveform, trigger_time=GPS + 1), waveform),
         ])
+    with pytest.raises(ValueError, match="geocenter"):
+        MultibandLikelihood([
+            TransientLikelihoodFD(make_lisa(waveform, time_reference="ssb"), waveform),
+            TransientLikelihoodFD(make_ground(waveform), waveform),
+        ])
     with pytest.raises(TypeError, match="IMRPhenomD"):
         MultibandLikelihood([TransientLikelihoodFD(lisa_ifos, RippleIMRPhenomXAS(f_ref=3e-3))])
     with pytest.raises(TypeError, match="IMRPhenomD"):

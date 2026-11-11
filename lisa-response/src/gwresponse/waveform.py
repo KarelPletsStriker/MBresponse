@@ -51,9 +51,11 @@ def time_to_merger(
     """Time-frequency map of the IMRPhenomD (2, 2) mode, relative to the peak of the signal.
 
     Given by the stationary phase approximation, t(f) = -(1/2 pi) d phase / df with
-    ``phase`` the phase of ripple's IMRPhenomD (``h ~ exp(i phase)``), whose peak is at
-    t = 0. It is negative before the peak, and constant above the cut frequency
-    M f = 0.2 of the model, where the amplitude vanishes.
+    ``phase`` the phase of ripple's IMRPhenomD (``h ~ exp(i phase)``). Its origin is
+    ripple's (and so Jim's) definition of ``t_c``, a few M before the amplitude peak.
+    It increases through inspiral and merger, turns over in the ringdown well above
+    the ringdown frequency, and is constant above the cut frequency M f = 0.2 of the
+    model, where the amplitude vanishes.
 
     Unlike differentiating ``IMRPhenomD.phase``, it is exact on any frequency grid,
     including the non-uniform grids of Jim's heterodyned likelihood.

@@ -35,10 +35,11 @@ class MultibandLikelihood(LikelihoodBase):
             same meaning in all of them.
 
     Raises:
-        ValueError: If no likelihood is given, if their trigger times or detector
-            names differ, or if any of them marginalizes over a parameter: a
-            marginalization done separately in each band would treat the shared
-            parameter as independent.
+        ValueError: If no likelihood is given, if their trigger times differ or detector
+            names repeat, if a barycentre-referenced LISA channel is combined with
+            ground-based detectors, or if any of several likelihoods marginalizes over
+            a parameter: a marginalization done separately in each band would treat
+            the shared parameter as independent.
         TypeError: If a likelihood containing a space-based detector does not use
             the IMRPhenomD waveform.
 
@@ -80,7 +81,17 @@ class MultibandLikelihood(LikelihoodBase):
             raise ValueError(
                 f"All likelihoods must use data with the same trigger time, got {sorted(trigger_times)}."
             )
-        names = [d.name for likelihood in likelihoods for d in likelihood.detectors]
+        detectors = [d for likelihood in likelihoods for d in likelihood.detectors]
+        ssb_referenced = [
+            d.name for d in detectors if isinstance(d, SpaceBased) and d.time_reference != "geocenter"
+        ]
+        if ssb_referenced and not all(isinstance(d, SpaceBased) for d in detectors):
+            raise ValueError(
+                f"Detectors {ssb_referenced} reference t_c to the barycentre, while Jim's "
+                "ground-based detectors reference it to the geocentre. Use "
+                'time_reference="geocenter" so that t_c means the same in every band.'
+            )
+        names = [d.name for d in detectors]
         if len(set(names)) != len(names):
             raise ValueError(f"Detector names must be unique across likelihoods, got {names}.")
         self.likelihoods = likelihoods

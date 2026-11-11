@@ -22,7 +22,8 @@ def test_time_to_merger_is_the_stationary_phase_time_of_ripple():
     t = time_to_merger(f, LISA_PARAMS)
     assert bool(jnp.all(jnp.diff(t)[f[1:] < 8.5e-3] > 0))
     g = jnp.geomspace(1e-4, 0.03, 300)
-    np.testing.assert_allclose(time_to_merger(g, LISA_PARAMS), jnp.interp(g, f, t), rtol=1e-6)
+    _, dphase_g = jax.jvp(lambda x: wf.phase(x, LISA_PARAMS), (g,), (jnp.ones_like(g),))
+    np.testing.assert_allclose(time_to_merger(g, LISA_PARAMS), -dphase_g / (2 * jnp.pi), rtol=1e-9, atol=1e-6)
 
 
 def test_only_imrphenomd_is_supported():
@@ -40,12 +41,21 @@ def test_tdi_noise_matches_michelson_cross_spectra():
     s_xy = -8 * jnp.sin(x) ** 2 * jnp.cos(x) * (s_oms + 4 * s_acc)
     np.testing.assert_allclose(tdi_noise_psd(f, "A"), s_xx - s_xy, rtol=1e-10)
     np.testing.assert_allclose(tdi_noise_psd(f, "E"), s_xx - s_xy, rtol=1e-10)
-    np.testing.assert_allclose(tdi_noise_psd(f, "T"), s_xx + 2 * s_xy, rtol=1e-8)
+    # S_XX + 2 S_XY cancels to O(x^4) at low frequency, so compare where it is well conditioned
+    well_conditioned = f > 1e-3
+    np.testing.assert_allclose(
+        tdi_noise_psd(f, "T")[well_conditioned], (s_xx + 2 * s_xy)[well_conditioned], rtol=1e-8
+    )
 
 
 def test_sky_averaged_sensitivity_matches_robson_et_al():
-    """One channel, averaged over sky and polarization, is twice the two-channel curve."""
-    f = jnp.geomspace(1e-4, 1e-2, 6)
+    """One channel, averaged over sky and polarization, is twice the two-channel curve.
+
+    Robson et al.'s fit of the averaged response, 3/10 / (1 + 0.6 (f/f*)^2), is
+    accurate to a few percent only well below f* = 19 mHz; at 10 mHz it differs from
+    the exact response by ~7%.
+    """
+    f = jnp.geomspace(1e-4, 5e-3, 6)
     det = SpaceBased("LISA_A", channel="A")
     det.data = Data.from_td(jnp.zeros(16), 1.0, start_time=0.0, trigger_time=8.0)
     n = 4000

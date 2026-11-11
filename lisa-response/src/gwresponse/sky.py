@@ -10,7 +10,18 @@ The polarization tensors are built with Jim's own
 with zero sidereal time, where Jim's Earth-fixed frame coincides with the
 equatorial frame) and rotated to the ecliptic frame, so that ``psi`` has the
 same meaning for LISA and for the ground-based detectors.
+
+Jim's ground-based detectors turn ``ra`` into an hour angle with the Greenwich
+*mean* sidereal time, which is measured from the mean equinox of date. Their
+``ra``, ``dec`` and ``psi`` are therefore effectively referred to the mean equator
+and equinox at the trigger time, not to J2000 (the two differ by ~0.35 deg in
+2025). :func:`sky_rotation` applies the same convention to LISA, so that both
+detectors see the same source direction.
 """
+
+from functools import lru_cache
+
+import numpy as np
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -57,16 +68,56 @@ def ecliptic_to_equatorial(
     return jnp.mod(ra, 2 * jnp.pi), dec
 
 
-def source_direction(ra: FloatLike, dec: FloatLike) -> Float[Array, "3"]:
-    """Unit vector from the SSB towards the source, in ecliptic coordinates."""
+@lru_cache(maxsize=64)
+def _sky_rotation(gps_time: float) -> tuple[tuple[float, ...], ...]:
+    import erfa
+    from astropy.time import Time
+
+    tt = Time(gps_time, format="gps").tt
+    # Bias-precession matrix (IAU 2006): ICRS -> mean equator and equinox of date
+    precession = erfa.pmat06(tt.jd1, tt.jd2)
+    return tuple(map(tuple, np.asarray(EQUATORIAL_TO_ECLIPTIC) @ precession.T))
+
+
+def sky_rotation(gps_time: float | None) -> Float[Array, "3 3"]:
+    """Rotation from Jim's equatorial sky frame at ``gps_time`` to the J2000 ecliptic frame.
+
+    Jim's ground-based detectors refer ``ra``, ``dec`` and ``psi`` to the mean equator
+    and equinox of date, see the module docstring. This undoes that precession and
+    rotates to the ecliptic frame of the LISA orbits and the Earth ephemeris.
+
+    Args:
+        gps_time: Trigger time, in GPS seconds. ``None`` treats the sky angles as
+            ICRS (J2000) coordinates, without precession.
+    """
+    if gps_time is None:
+        return EQUATORIAL_TO_ECLIPTIC
+    return jnp.array(_sky_rotation(float(gps_time)))
+
+
+def source_direction(
+    ra: FloatLike, dec: FloatLike, rotation: Float[Array, "3 3"] = EQUATORIAL_TO_ECLIPTIC
+) -> Float[Array, "3"]:
+    """Unit vector from the SSB towards the source, in ecliptic coordinates.
+
+    Args:
+        ra: Right ascension, in rad.
+        dec: Declination, in rad.
+        rotation: Equatorial-to-ecliptic rotation, see :func:`sky_rotation`. The
+            default treats ``ra`` and ``dec`` as ICRS coordinates.
+    """
     n_eq = jnp.array(
         [jnp.cos(dec) * jnp.cos(ra), jnp.cos(dec) * jnp.sin(ra), jnp.sin(dec)]
     )
-    return EQUATORIAL_TO_ECLIPTIC @ n_eq
+    return rotation @ n_eq
 
 
 def polarization_tensors(
-    ra: FloatLike, dec: FloatLike, psi: FloatLike, modes: str = "pc"
+    ra: FloatLike,
+    dec: FloatLike,
+    psi: FloatLike,
+    modes: str = "pc",
+    rotation: Float[Array, "3 3"] = EQUATORIAL_TO_ECLIPTIC,
 ) -> dict[str, Float[Array, "3 3"]]:
     """Polarization tensors of the wave in ecliptic coordinates, in Jim's convention.
 
@@ -75,6 +126,7 @@ def polarization_tensors(
         dec: Declination, in rad.
         psi: Polarization angle, in rad.
         modes: Polarization modes, as for Jim's ground-based detectors.
+        rotation: Equatorial-to-ecliptic rotation, see :func:`sky_rotation`.
 
     Returns:
         A dict mapping each polarization name (``"p"``, ``"c"``) to its 3x3 tensor.
@@ -82,5 +134,5 @@ def polarization_tensors(
     tensors = {}
     for mode in modes:
         e_eq = Polarization(mode).tensor_from_sky(ra, dec, psi, 0.0)
-        tensors[mode] = EQUATORIAL_TO_ECLIPTIC @ e_eq @ EQUATORIAL_TO_ECLIPTIC.T
+        tensors[mode] = rotation @ e_eq @ rotation.T
     return tensors

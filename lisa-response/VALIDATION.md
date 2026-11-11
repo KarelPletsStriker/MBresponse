@@ -60,10 +60,10 @@ Tolerances below are the targets for passing. Use mismatch 1 − ⟨a|b⟩/√(�
 - The existing `test_long_wavelength_limit_is_jims_antenna_pattern` already does this.
 - Extend it to the low-frequency LISA antenna pattern with the √3/2 factor of a 60° interferometer, and with the annual modulation, checked against the analytic Cutler (1998) F₊ and F× over one year.
 
-**R5. Sky-averaged response vs lisatools.**
-- Compare our sky- and polarisation-averaged |T_A|² (Monte Carlo, 10⁴ draws) with `A1TDISens.stochastic_transform`, i.e. the analytic averaged response used in lisatools.
-- Target: within 2% for 1e-4 to 5e-2 Hz.
-- This replaces the factor-2 comparison with Robson's fit (accurate only to ~4%) with an exact one.
+**R5. Exact sky-averaged response vs BBHx.**
+- Average BBHx's |T_A|² over 10⁴ random sky positions and polarisations on the same orbit file as R1, and compare with our average.
+- Target: within 1% (Monte Carlo noise) for 1e-4 to 5e-2 Hz.
+- The existing checks cover only part of this. Robson's fit (factor 2, within 1% below 5 mHz, 7% off at 10 mHz) and lisatools' `stochastic_transform` are both low-frequency approximations: ours agrees with lisatools' shape to within 1% below 4 mHz and departs above, as expected. A sky-averaged BBHx response is the exact reference over the full band.
 
 ## Orbits and time
 
@@ -72,13 +72,14 @@ Tolerances below are the targets for passing. Use mismatch 1 − ⟨a|b⟩/√(�
 - Expected agreement: O(e²·AU) ≈ 3,500 km, because ours are first order in eccentricity. Any O(e·AU) ≈ 7×10⁵ km difference is a convention mismatch: orientation κ/λ, spacecraft labelling, or the clockwise vs counter-clockwise sense of the triangle.
 - Also compare arm lengths, which should be 2.5e9 m with no variation in our model, and the triangle's normal vector, which should be inclined 60° to the ecliptic.
 
-**O2. Roemer delay vs astropy.**
-- Compare `ssb_delay` with `astropy.time.Time(gps, format="gps").light_travel_time(SkyCoord(ra, dec), kind="barycentric", location=EarthLocation.from_geocentric(0, 0, 0, unit="m"))`.
-- Target: < 1 ms, so that geocentric `t_c` means the same in LISA and LIGO likelihoods.
+**O2. Roemer delay vs astropy (implemented).**
+- `test_roemer_delay_matches_astropy` compares `ssb_delay` with astropy's `light_travel_time(..., kind="barycentric")` at the geocentre for t_c = 0, 1 h and 1 day.
+- Agreement: < 0.1 ms. This replaces the earlier test, which used `ssb_delay` to check itself.
 
-**O3. Frame rotation vs astropy.**
-- Compare `equatorial_to_ecliptic` with `SkyCoord(ra, dec, frame="icrs").transform_to(BarycentricMeanEcliptic(equinox="J2000"))`. Target: < 1e-7 rad.
-- Check the polarisation-angle mapping: our rotated polarisation tensors at (ra, dec, ψ) must equal BBHx's ecliptic tensors at (λ, β, ψ_ecl), with ψ_ecl computed from the position angle of the ecliptic north pole.
+**O3. Frame rotation vs astropy (implemented in part).**
+- `test_sky_frame_matches_jims_equinox_of_date` checks that (ra, dec) taken in the mean equinox of date (as Jim's GMST-based ground detectors assume) map to astropy's J2000 ecliptic direction. Agreement: < 1.2e-4 rad, the size of annual aberration, which astropy includes and the analysis ignores.
+- Still to do: the polarisation-angle mapping. Our rotated polarisation tensors at (ra, dec, ψ) must equal BBHx's ecliptic tensors at (λ, β, ψ_ecl), with ψ_ecl computed from the position angle of the ecliptic north pole.
+- Still to do: an end-to-end check that Jim's H1 antenna pattern at (ra, dec, gmst) equals LAL's `ComputeDetAMResponse`, which pins the "equinox of date" reading of Jim's ra.
 
 ## Waveform
 

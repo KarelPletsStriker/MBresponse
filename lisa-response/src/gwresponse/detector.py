@@ -23,6 +23,7 @@ the arrival time of the peak at the geocentre relative to the trigger time of th
 data, so LISA and ground-based detectors can be combined in one analysis.
 """
 
+import warnings
 from collections.abc import Mapping
 from typing import Optional
 
@@ -43,7 +44,7 @@ from .orbits import (
     lisa_orbit_trailing_earth,
     spacecraft_positions,
 )
-from .sky import polarization_tensors, source_direction
+from .sky import polarization_tensors, sky_rotation, source_direction
 from .waveform import check_waveform, time_to_merger
 
 TDI_CHANNELS = ("A", "E", "T")
@@ -159,9 +160,21 @@ class SpaceBased(Detector):
         """
         if self.time_reference == "ssb":
             return 0.0
-        # A plane wave reaches x at t_SSB + k.x / c
-        position, velocity = earth_position_velocity(self.data.trigger_time)
-        return -jnp.dot(k, jnp.asarray(position) + jnp.asarray(velocity) * t_c) / C_SI
+        # A plane wave reaches x at t_SSB + k.x / c. The geocentre is expanded to
+        # second order about the trigger time (error < 1 ms for |t_c| < 1 day).
+        position, velocity, acceleration = earth_position_velocity(
+            self.data.trigger_time, acceleration=True
+        )
+        geocentre = (
+            jnp.asarray(position)
+            + jnp.asarray(velocity) * t_c
+            + 0.5 * jnp.asarray(acceleration) * t_c**2
+        )
+        return -jnp.dot(k, geocentre) / C_SI
+
+    def sky_rotation(self) -> Float[Array, "3 3"]:
+        """Rotation from Jim's equatorial sky frame at the trigger time to the ecliptic frame."""
+        return sky_rotation(self.data.trigger_time)
 
     # ------------------------------------------------------------------
     # Response
@@ -184,8 +197,10 @@ class SpaceBased(Detector):
             A dict mapping each polarization name to an array of shape (6, N).
         """
         ra, dec, psi = params["ra"], params["dec"], params["psi"]
-        k = -source_direction(ra, dec)
-        tensors = polarization_tensors(ra, dec, psi, "".join(p.name for p in self.polarization_mode))
+        rotation = self.sky_rotation()
+        k = -source_direction(ra, dec, rotation)
+        modes = "".join(p.name for p in self.polarization_mode)
+        tensors = polarization_tensors(ra, dec, psi, modes, rotation)
 
         t_peak_ssb = self.data.trigger_time + params["t_c"] + self.ssb_delay(k, params["t_c"])
         t_ssb = t_peak_ssb + time_to_merger(frequency, params)
@@ -257,7 +272,7 @@ class SpaceBased(Detector):
         """
         transfer = self.tdi_transfer(frequency, params)
         strain = sum(transfer[pol] * h_sky[pol] for pol in transfer)
-        k = -source_direction(params["ra"], params["dec"])
+        k = -source_direction(params["ra"], params["dec"], self.sky_rotation())
         time_shift = (
             self.data.trigger_time
             - self.data.start_time
@@ -399,4 +414,11 @@ def get_LISA(
     """
     if trigger_time is not None and "orbit_kappa" not in kwargs:
         kwargs = {**lisa_orbit_trailing_earth(trigger_time), **kwargs}
+    elif trigger_time is None and "orbit_kappa" not in kwargs:
+        warnings.warn(
+            "get_LISA() without trigger_time uses orbit_kappa=0 at GPS orbit_t0, which "
+            "does not put LISA behind the Earth at the time of the signal. Pass "
+            "trigger_time, or orbit_kappa and orbit_t0.",
+            stacklevel=2,
+        )
     return [SpaceBased(f"LISA_{channel}", channel=channel, **kwargs) for channel in channels]
