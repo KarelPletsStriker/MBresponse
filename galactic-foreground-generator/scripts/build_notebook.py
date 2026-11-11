@@ -307,6 +307,45 @@ are unresolved binaries, so this is of order 1% too (0.7%).
 *Original analysis and Mathematica notebook: Lucy McNeill. Python port: this repository.*
 """)
 
+md(r"""
+## Extension: generating a synthetic DWD catalogue (the Galactic foreground)
+
+Not in the original notebook. This draws individual binaries from the same steady-state model:
+masses from the intrinsic distribution above (split by composition), $f_{\rm GW}$ from $dN/df \propto \mathcal{M}^{-5/3} f^{-11/3}$
+with the composition rates above, and positions uniform in the notebook's disc (radius 15 kpc, height 1 kpc).
+The Sun's position (8.2 kpc from the centre, in the mid-plane) is an added assumption, used only for the distance.
+""")
+code(r"""
+from galactic_foreground import generator
+
+expected = generator.expected_numbers(intrinsic, f_lo=1.5e-4, f_hi=0.5)
+print({k: f"{v:,.0f}" for k, v in expected.items()}, f"total {sum(expected.values()):,.0f} in the Milky Way")
+
+# a 100,000-binary subsample with the same proportions (n=None gives the full Poisson population)
+cat = generator.generate_catalogue(intrinsic, n=100_000, f_lo=1.5e-4, f_hi=0.5, geometry="galaxy", seed=1)
+cat.head()
+""")
+code(r"""
+fig, axs = plt.subplots(1, 3, figsize=(14, 3.8))
+for c, colour in zip(("HeHe", "HeCO", "COCO"), ("orange", "#40e0b0", "#3399cc")):
+    sub = cat[cat.composition == c]
+    axs[0].hist(sub.f_gw * 1e3, bins=np.logspace(np.log10(0.15), np.log10(500), 40), histtype="step", color=colour, label=c)
+    axs[1].hist(sub.distance, bins=40, histtype="step", color=colour)
+axs[0].set(xscale="log", yscale="log", xlabel="GW frequency (mHz)", ylabel="N"); axs[0].legend()
+axs[1].set(xlabel="distance from Sun (kpc)", ylabel="N")
+axs[2].scatter(cat.m1[:5000], cat.m2[:5000], s=2, alpha=0.4, color="k")
+axs[2].set(xlabel=r"$m_1$ ($M_\odot$)", ylabel=r"$m_2$ ($M_\odot$)", aspect="equal", xlim=(0, 1.4), ylim=(0, 1.4))
+fig.tight_layout()
+""")
+code(r"""
+local = generator.generate_catalogue(intrinsic, geometry="local", seed=2)  # full Poisson draw within 100 pc
+print(f"{len(local)} binaries with merger time < 1 Gyr within 100 pc (notebook estimate: ~50)")
+local.sort_values("distance").head(10)
+""")
+code(r"""
+cat.to_csv(ROOT / "data" / "synthetic_dwd_catalogue.csv", index=False)
+""")
+
 nb = nbf.v4.new_notebook(cells=cells, metadata={"kernelspec": {"name": "python3", "display_name": "Python 3", "language": "python"}})
 nbf.write(nb, "notebooks/white_dwarf_rates.ipynb")
 print("wrote notebooks/white_dwarf_rates.ipynb")

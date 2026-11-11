@@ -5,7 +5,7 @@ Galactic DWD population.
 Original analysis and notebook: Lucy McNeill.
 """
 
-from . import constants, data, gw, population, selection, stability
+from . import constants, data, generator, gw, population, selection, stability
 
-__all__ = ["constants", "data", "gw", "population", "selection", "stability"]
+__all__ = ["constants", "data", "generator", "gw", "population", "selection", "stability"]
 __version__ = "0.1.0"
